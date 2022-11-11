@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title></title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            background: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            border: 1px solid white;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas width="400" height="400" id="game"></canvas>
+    <script>
+        var canvas = document.getElementById('game');
+        var context = canvas.getContext('2d');
+
+        var grid = 16;
+        var count = 0;
+
+        var snake = {
+            x: 1000,
+            y: 1000,
+
+            // vận tốc của con rắn. di chuyển một chiều dài lưới cho mọi khung hình theo hướng x hoặc y  
+            dx: grid,
+            dy: 0,
+
+            // theo dõi tất cả các lưới mà phần thân rắn chiếm giữ
+            cells: [],
+
+            // chiều dài của con rắn. lớn lên khi ăn một quả táo
+            maxCells: 4
+        };
+        var apple = {
+            x: 320,
+            y: 320
+        };
+
+        // lấy các số nguyên ngẫu nhiên trong một phạm vi cụ thể
+        // @see https://stackoverflow.com/a/1527820/2124254
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        // vòng lặp trò chơi
+        function loop() {
+            requestAnimationFrame(loop);
+
+            // vòng lặp trò chơi chậm thành 15 khung hình / giây thay vì 60 (60/15 = 4)
+            if (++count < 8) {
+                return;
+            }
+
+            count = 0;
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            // di chuyển con rắn theo vận tốc của nó
+            snake.x += snake.dx;
+            snake.y += snake.dy;
+
+            // quấn vị trí con rắn theo chiều ngang trên cạnh màn hình
+            if (snake.x < 0) {
+                snake.x = canvas.width - grid;
+            }
+            else if (snake.x >= canvas.width) {
+                snake.x = 0;
+            }
+
+
+            // quấn vị trí con rắn theo chiều dọc trên cạnh màn hình
+            if (snake.y < 0) {
+                snake.y = canvas.height - grid;
+            }
+            else if (snake.y >= canvas.height) {
+                snake.y = 0;
+            }
+
+            // theo dõi nơi con rắn đã ở. phía trước của mảng luôn luôn là phần đầu
+            snake.cells.unshift({ x: snake.x, y: snake.y });
+
+            // xóa các ô khi chúng ta di chuyển khỏi chúng
+            if (snake.cells.length > snake.maxCells) {
+                snake.cells.pop();
+            }
+
+            /// vẽ quả táo
+            context.fillStyle = 'red';
+            context.fillRect(apple.x, apple.y, grid - 1, grid - 1);
+
+            // vẽ con rắn từng ô một
+            context.fillStyle = 'green';
+            snake.cells.forEach(function (cell, index) {
+
+
+                // vẽ nhỏ hơn 1 px so với lưới tạo hiệu ứng lưới trong cơ thể con rắn để bạn có thể xem nó dài bao nhiêu
+                context.fillRect(cell.x, cell.y, grid - 1, grid - 1);
+
+                // con rắn đã ăn táo
+                if (cell.x === apple.x && cell.y === apple.y) {
+                    snake.maxCells++;
+
+
+                    // canvas là 400x400 là lưới 25x25
+                    apple.x = getRandomInt(0, 25) * grid;
+                    apple.y = getRandomInt(0, 25) * grid;
+                }
+
+                // kiểm tra va chạm với tất cả các ô sau ô này (sắp xếp bong bóng đã sửa đổi)
+                for (var i = index + 1; i < snake.cells.length; i++) {
+
+                    // con rắn chiếm cùng một không gian với một phần cơ thể. đặt lại trò chơi
+                    if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+                        snake.x = 160;
+                        snake.y = 160;
+                        snake.cells = [];
+                        snake.maxCells = 4;
+                        snake.dx = grid;
+                        snake.dy = 0;
+
+                        apple.x = getRandomInt(0, 25) * grid;
+                        apple.y = getRandomInt(0, 25) * grid;
+                    }
+                }
+            });
+        }
+
+        // nghe các sự kiện bàn phím để di chuyển con rắn
+        document.addEventListener('keydown', function (e) {
+            // ngăn rắn tự bẻ khóa bằng cách kiểm tra xem nó có
+            // chưa di chuyển trên cùng một trục (nhấn trái khi di chuyển
+            // trái sẽ không làm gì cả và nhấn phải khi di chuyển sang trái
+            // không nên để bạn va chạm với cơ thể của mình)
+
+            // phím mũi tên trái
+            if (e.which === 37 && snake.dx === 0) {
+                snake.dx = -grid;
+                snake.dy = 0;
+            }
+            // phím mũi tên chỉ lên
+            else if (e.which === 38 && snake.dy === 0) {
+                snake.dy = -grid;
+                snake.dx = 0;
+            }
+            // phím mũi tên phải
+            else if (e.which === 39 && snake.dx === 0) {
+                snake.dx = grid;
+                snake.dy = 0;
+            }
+            // phím mũi tên xuống
+            else if (e.which === 40 && snake.dy === 0) {
+                snake.dy = grid;
+                snake.dx = 0;
+            }
+        });
+
+        // start the game
+        requestAnimationFrame(loop);
+    </script>
+</body>
+
+</html>
